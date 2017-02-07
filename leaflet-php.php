@@ -37,10 +37,10 @@ class leafletphp {
 
 	var $scripts = array();
 
-	public function __construct( $args = array(), $classname = '', $jsid = '' ) {
+	public function __construct( $args = array(), $jsid = '', $classname = '' ) {
 		$this->add_settings( 'leaflet', $args );
-		$this->classname = $classname;
 		$this->jsid = $jsid;
+		$this->classname = $classname;
 	}	
 
 	public function add_settings( $target, $settings ) {
