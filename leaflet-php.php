@@ -1,80 +1,147 @@
 <?php
+/**
+ * This file provides the LeafletPHP class
+ *
+ * @package LeafletPHP
+ */
 
 /**
  * A PHP class for building custom Leaflet.js initialization functions.
  */
-class leafletphp {
+class LeafletPHP {
 
+	/**
+	 * The version of LeafletPHP.
+	 *
+	 * @var $version
+	 */
 	var $version = '2017-02-04';
-	var $baseurl;
+
+	/**
+	 * An additional classname to add to the wrapper div.
+	 *
+	 * @var $classname
+	 */
 	var $classname;
+
+	/**
+	 * A global JS ID for the map wrapped object.
+	 *
+	 * @var $jsid
+	 */
 	var $jsid;
 
+	/**
+	 * Are we in debug mode.
+	 *
+	 * @var $debug
+	 */
 	var $debug = true;
 
+	/**
+	 * Default settings for our known plugins.
+	 *
+	 * @var $settings
+	 */
 	var $settings = array(
-		'leaflet' => array('center' => array(0,0), 'zoom' => 1),
+		'leaflet' => array( 'center' => array( 0, 0 ), 'zoom' => 1 ),
 		'locatecontrol' => array(),
 		'draw' => array(),
 	);
 
+	/**
+	 * The basemaps we're going to show.
+	 *
+	 * @var $basemaps
+	 */
 	var $basemaps = array(
 		array(
-			'type' => 'L.tileLayer', 
+			'type' => 'L.tileLayer',
 			'args' => array(
-				'//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', array(
+				'//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+	array(
 					'maxZoom' => 19,
-					'attribution' =>  '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-				) 
+					'attribution' => '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+				),
 			),
-			'name' => 'default_basemap'	
-		) 
+			'name' => 'default_basemap',
+		),
 	);
 
+	/**
+	 * The regular layers we're going to show.
+	 *
+	 * @var $layers
+	 */
 	var $layers = array();
 
+	/**
+	 * The map controls we're going to show.
+	 *
+	 * @var $controls
+	 */
 	var $controls = array();
 
+	/**
+	 * Any additional scripts we're going to include within the IIFE
+	 *
+	 * @var $scripts
+	 */
 	var $scripts = array();
 
+	/**
+	 * The constructor.
+	 *
+	 * @param array  $args An array of Leaflet.js constructor arguments.
+	 * @param string $jsid The ID that this IIFE will have.
+	 * @param string $classname Additional classnames to put in the wrapper div.
+	 */
 	public function __construct( $args = array(), $jsid = '', $classname = '' ) {
 		$this->add_settings( 'leaflet', $args );
 		$this->jsid = $jsid;
 		$this->classname = $classname;
-	}	
-
-	public function add_settings( $target, $settings ) {
-		$this->settings[$target] = array_merge( $this->settings[$target], $settings );
 	}
 
+	/**
+	 * Add settings for known objects.
+	 *
+	 * @param string $target What are these settings for.
+	 * @param array  $settings The array of settings.
+	 */
+	public function add_settings( $target, $settings ) {
+		$this->settings[ $target ] = array_merge( $this->settings[ $target ], $settings );
+	}
+
+	/**
+	 * Get the output HTML, including the JS which will initialize the map.
+	 */
 	public function get_html() {
 		$this->enqueue_scripts();
 
 		$scriptid = 'leafletphp_' . rand();
-		if ( !empty( $this->jsid ) ) {
+		if ( ! empty( $this->jsid ) ) {
 			$scriptid = $this->jsid;
 		}
 
 		$idtag = 'id="' . $scriptid . '" ';
 
 		$classtag = 'class="leafletphp" ';
-		if ( !empty( $this->classname ) ) {
+		if ( ! empty( $this->classname ) ) {
 			$classtag = 'class="leafletphp ' . $this->classname . '" ';
 		}
 
 		$html = array();
 
-		// Set up the div wrapper
+		// Set up the div wrapper.
 		$html[] = '<div ' . $idtag . $classtag . 'data-leafletphp="' . $scriptid . '">';
 		$html[] = '<script data-leafletphp="' . $scriptid . '">jQuery(document).ready(function() { new function(){';
 
-		// Initialize Leaflet
+		// Initialize Leaflet.
 		$html[] = 'var map = this.map = L.map("' . $scriptid . '", ' . $this->json_encode( $this->settings['leaflet'] ) . ');';
 
-
-		// Initialize basemap(s)
+		// Initialize basemap(s).
 		$html[] = 'this.basemaps = {};';
-		foreach( $this->basemaps as $basemap ){
+		foreach ( $this->basemaps as $basemap ) {
 
 			if ( empty( $basemap['name'] ) ) {
 				$basemap['name'] = 'basemap_' . rand();
@@ -83,9 +150,9 @@ class leafletphp {
 			$html[] = 'var ' . $basemap['name'] . ' = this.basemaps.' . $basemap['name'] . ' = ' . $basemap['type'] . '.apply(this,' . $this->json_encode( $basemap['args'] ) . ').addTo(this.map);';
 		}
 
-		// Initialize layers
+		// Initialize layers.
 		$html[] = 'this.layers = {};';
-		foreach( $this->layers as $layer ) {
+		foreach ( $this->layers as $layer ) {
 			if ( empty( $layer['name'] ) ) {
 				$layer['name'] = 'layer_' . rand();
 			}
@@ -93,9 +160,9 @@ class leafletphp {
 			$html[] = 'var ' . $layer['name'] . ' = this.layers.' . $layer['name']  . '= ' . $layer['type'] . '.apply(this,' . $this->json_encode( $layer['args'] ) . ').addTo(this.map);';
 		}
 
-		// Initialize controls
+		// Initialize controls.
 		$html[] = 'this.controls = {};';
-		foreach( $this->controls as $control ) {
+		foreach ( $this->controls as $control ) {
 			if ( empty( $control['name'] ) ) {
 				$control['name'] = 'control_' . rand();
 			}
@@ -104,11 +171,11 @@ class leafletphp {
 			$html[] = 'this.map.addControl(' . $control['name'] . ');';
 		}
 
-		// Set up reference to inside the container
+		// Set up reference to inside the container.
 		$html[] = 'window.' . $scriptid . ' = this;';
 
-		// Add user scripts here at the bottom;
-		foreach( $this->scripts as $script ) {
+		// Add user scripts here at the bottom.
+		foreach ( $this->scripts as $script ) {
 			$html[] = $script;
 		}
 
@@ -116,74 +183,112 @@ class leafletphp {
 		$html[] = '</div>';
 
 		if ( $this->debug ) {
-			$output = implode("\n",$html);
+			$output = implode( "\n",$html );
 		} else {
-			$output = implode('',$html);
+			$output = implode( '',$html );
 		}
 
 		return $output;
 	}
 
-
-	public function add_basemap($type,$args,$layer_name = ''){
+	/**
+	 * Add a basemap.
+	 *
+	 * @param string $type The type of basemap to add.
+	 * @param array  $args The arguments for the basemap.
+	 * @param string $layer_name A name for the layer.
+	 */
+	public function add_basemap( $type, $args, $layer_name = '' ) {
 		$this->layers[] = array(
-			'type' => $type, 
+			'type' => $type,
 			'args' => $args,
-			'name' => $layer_name
+			'name' => $layer_name,
 		);
 	}
 
-	public function add_layer($type,$args,$layer_name = ''){
+	/**
+	 * Add a regular layer.
+	 *
+	 * @param string $type The type of layer to add.
+	 * @param array  $args The arguments for the layer.
+	 * @param string $layer_name A name for the layer.
+	 */
+	public function add_layer( $type, $args, $layer_name = '' ) {
 		$this->layers[] = array(
-			'type' => $type, 
+			'type' => $type,
 			'args' => $args,
-			'name' => $layer_name
+			'name' => $layer_name,
 		);
 	}
 
-	public function add_control($type,$args,$control_name= ''){
+	/**
+	 * Add a control.
+	 *
+	 * @param string $type The type of control to add.
+	 * @param array  $args The arguments for the control.
+	 * @param string $control_name A name for the control.
+	 */
+	public function add_control( $type, $args, $control_name = '' ) {
 		$this->controls[] = array(
-			'type' => $type, 
+			'type' => $type,
 			'args' => $args,
-			'name' => $control_name
+			'name' => $control_name,
 		);
 	}
 
+	/**
+	 * Add user scripts which will run inside the IIFE.
+	 *
+	 * @param string $script The JS script to run (no <script> tags needed).
+	 */
+	public function add_script( $script ) {
+		$this->scripts[] = $script;
+	}
+
+	/**
+	 * Callback handler to enqueue scripts.
+	 */
 	public function enqueue_scripts() {
-		$baseurl = plugins_url( dirname( plugin_basename( __FILE__ )  ) );
+		$baseurl = plugins_url( dirname( plugin_basename( __FILE__ ) ) );
 
-		// Always enqueue these
-		wp_enqueue_script( 'leafletphp-leaflet-js', $baseurl . '/assets/leaflet/leaflet.js', array('jquery'), $this->version );
+		// Always enqueue these.
+		wp_enqueue_script( 'leafletphp-leaflet-js', $baseurl . '/assets/leaflet/leaflet.js', array( 'jquery' ), $this->version );
 		wp_enqueue_style( 'leafletphp-css', $baseurl . '/assets/leafletphp.css', array(), $this->version );
-		wp_enqueue_style( 'leafletphp-leaflet-css', $baseurl . '/assets/leaflet/leaflet.css', array('leafletphp-css'), $this->version );
+		wp_enqueue_style( 'leafletphp-leaflet-css', $baseurl . '/assets/leaflet/leaflet.css', array( 'leafletphp-css' ), $this->version );
 
-		// Enqueue needed control scripts
-		foreach( $this->controls as $control ) {
+		// Enqueue needed control scripts.
+		foreach ( $this->controls as $control ) {
 			switch ( $control['type'] ) {
 				case 'L.Control.Draw':
-					wp_enqueue_script( 'leafletphp-draw-js', $baseurl . '/assets/Leaflet.draw/dist/leaflet.draw.js', array('leafletphp-leaflet-js'), $this->version );
-					wp_enqueue_style( 'leafletphp-draw-css', $baseurl . '/assets/Leaflet.draw/dist/leaflet.draw.css', array('leafletphp-leaflet-css'), $this->version );
+					wp_enqueue_script( 'leafletphp-draw-js', $baseurl . '/assets/Leaflet.draw/dist/leaflet.draw.js', array( 'leafletphp-leaflet-js' ), $this->version );
+					wp_enqueue_style( 'leafletphp-draw-css', $baseurl . '/assets/Leaflet.draw/dist/leaflet.draw.css', array( 'leafletphp-leaflet-css' ), $this->version );
 					break;
 			}
 		}
 	}
 
-	public function add_script( $script ) {
-		$this->scripts[] = $script;
-	}
-
-	public function json_encode($array){
-		$ret = json_encode( $array );
-		$ret = preg_replace('/:"@@@(.*?)@@@"([,}])/',':\1\2',$ret);
+	/**
+	 * Encode JSON, but strip quotes from strings wrapped in "@@@this@@@" so they'll be variables.
+	 *
+	 * @param array $array Something to json_encode.
+	 */
+	public function json_encode( $array ) {
+		$ret = wp_json_encode( $array );
+		$ret = preg_replace( '/:"@@@(.*?)@@@"([,}])/',':\1\2',$ret );
 		return $ret;
 	}
 
+	/**
+	 * Print the HTML.
+	 */
 	public function print() {
-		print $this->get_html();
+		print $this->get_html(); // @codingStandardsIgnoreLine
 	}
 
+	/**
+	 * Magic method to print the html.
+	 */
 	public function __toString() {
 		return $this->get_html();
 	}
-
 }
