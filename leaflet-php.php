@@ -136,6 +136,8 @@ class LeafletPHP {
 		$html[] = '<div ' . $idtag . $classtag . 'data-leafletphp="' . $scriptid . '">';
 		$html[] = '<script data-leafletphp="' . $scriptid . '">jQuery(document).ready(function() { new function(){';
 
+		$html[] = 'this.scriptid = "' . $scriptid . '"';
+
 		// Initialize Leaflet.
 		$html[] = 'var map = this.map = L.map("' . $scriptid . '", ' . $this->json_encode( $this->settings['leaflet'] ) . ');';
 
@@ -178,6 +180,8 @@ class LeafletPHP {
 		foreach ( $this->scripts as $script ) {
 			$html[] = $script;
 		}
+
+		$html[] = 'jQuery("#' . $scriptid . '").trigger("leafletphp/loaded",this);';
 
 		$html[] = '};});</script>';
 		$html[] = '</div>';
@@ -276,13 +280,6 @@ class LeafletPHP {
 		$ret = wp_json_encode( $array );
 		$ret = preg_replace( '/:"@@@(.*?)@@@"([,}])/',':\1\2',$ret );
 		return $ret;
-	}
-
-	/**
-	 * Print the HTML.
-	 */
-	public function print() {
-		print $this->get_html(); // @codingStandardsIgnoreLine
 	}
 
 	/**
