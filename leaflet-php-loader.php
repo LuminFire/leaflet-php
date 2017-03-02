@@ -20,20 +20,30 @@ if ( !class_exists( 'leafletphp_loader' ) ) {
 			leafletphp_loader::$versions[$version_number] = $file;
 		}
 
-		// This gets called once after plugins_loaded. 
-		public static function load(){
-			// Sort keys by version_compare.
-			uksort( leafletphp_loader::$versions, 'version_compare' );
+		/**
+		 * A loader function for apl_autoload_register.
+		 *
+		 * This gets called by PHP if LeafletPHP is not a class.
+		 *
+		 * This is preferable to always loading the class, since
+		 * this will avoid loading it if it's not needed.
+		 */
+		public static function load( $className ){
+			if ( $className === 'LeafletPHP' ) {
+				// Sort keys by version_compare.
+				uksort( leafletphp_loader::$versions, 'version_compare' );
 
-			// Go to the end of the array and require the file.
-			require_once( end( leafletphp_loader::$versions ) );
+				// Go to the end of the array and require the file.
+				require_once( end( leafletphp_loader::$versions ) );
 
-			// Set the $version variable. Means we only have to keep the version in one place (each individual install's loader file).
-			LeafletPHP::$version = key( leafletphp_loader::$versions );
+				// Set the $version variable. Means we only have to keep the version in one place (each individual install's loader file).
+				LeafletPHP::$version = key( leafletphp_loader::$versions );
+			}
 		}
 	}
 
-	add_action('plugins_loaded',array('leafletphp_loader','load'));
+	// Let PHP auto loading only include the file if needed
+	spl_autoload_register( array( 'leafletphp_loader','load' ) );
 }
 
 leafletphp_loader::register_version($version,dirname( __FILE__ ) . '/leaflet-php.php' );
