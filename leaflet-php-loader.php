@@ -20,9 +20,9 @@ if ( !class_exists( 'leafletphp_loader' ) ) {
 		}
 
 		public static function load(){
-		uksort( leafletphp_loader::$versions, 'version_compare' );
-		require_once( end( leafletphp_loader::$versions ) );
-		LeafletPHP::$version = key( leafletphp_loader::$versions );
+			uksort( leafletphp_loader::$versions, 'version_compare' );
+			require_once( end( leafletphp_loader::$versions ) );
+			LeafletPHP::$version = key( leafletphp_loader::$versions );
 		}
 	}
 
