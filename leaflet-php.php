@@ -15,7 +15,7 @@ class LeafletPHP {
 	 *
 	 * @var $version
 	 */
-	var $version = '2017-02-04';
+	public static $version;
 
 	/**
 	 * An additional classname to add to the wrapper div.
@@ -98,7 +98,7 @@ class LeafletPHP {
 	 */
 	public function __construct( $args = array(), $jsid = '', $classname = '' ) {
 		$this->add_settings( 'leaflet', $args );
-		$this->jsid = $jsid;
+		$this->jsid = ( !empty( $jsid ) ? $jsid : 'leafletphp_' . rand() );
 		$this->classname = $classname;
 	}
 
@@ -118,12 +118,11 @@ class LeafletPHP {
 	public function get_html() {
 		$this->enqueue_scripts();
 
-		$scriptid = 'leafletphp_' . rand();
 		if ( ! empty( $this->jsid ) ) {
-			$scriptid = $this->jsid;
+			$this->jsid = $this->jsid;
 		}
 
-		$idtag = 'id="' . $scriptid . '" ';
+		$idtag = 'id="' . $this->jsid . '" ';
 
 		$classtag = 'class="leafletphp" ';
 		if ( ! empty( $this->classname ) ) {
@@ -133,13 +132,13 @@ class LeafletPHP {
 		$html = array();
 
 		// Set up the div wrapper.
-		$html[] = '<div ' . $idtag . $classtag . 'data-leafletphp="' . $scriptid . '">';
-		$html[] = '<script data-leafletphp="' . $scriptid . '">jQuery(document).ready(function() { new function(){';
+		$html[] = '<div ' . $idtag . $classtag . 'data-leafletphp="' . $this->jsid . '">';
+		$html[] = '<script data-leafletphp="' . $this->jsid . '">' . "\n" . 'jQuery(document).ready(function() { new function(){';
 
-		$html[] = 'this.scriptid = "' . $scriptid . '"';
+		$html[] = 'this.scriptid = "' . $this->jsid . '"';
 
 		// Initialize Leaflet.
-		$html[] = 'var map = this.map = L.map("' . $scriptid . '", ' . $this->json_encode( $this->settings['leaflet'] ) . ');';
+		$html[] = 'var map = this.map = L.map("' . $this->jsid . '", ' . $this->json_encode( $this->settings['leaflet'] ) . ');';
 
 		// Initialize basemap(s).
 		$html[] = 'this.basemaps = {};';
@@ -174,16 +173,16 @@ class LeafletPHP {
 		}
 
 		// Set up reference to inside the container.
-		$html[] = 'window.' . $scriptid . ' = this;';
+		$html[] = 'window.' . $this->jsid . ' = this;';
 
 		// Add user scripts here at the bottom.
 		foreach ( $this->scripts as $script ) {
 			$html[] = $script;
 		}
 
-		$html[] = 'jQuery("#' . $scriptid . '").trigger("leafletphp/loaded",this);';
+		$html[] = 'jQuery("#' . $this->jsid . '").trigger("leafletphp/loaded",this);';
 
-		$html[] = '};});</script>';
+		$html[] = '};});' . "\n" . '</script>';
 		$html[] = '</div>';
 
 		if ( $this->debug ) {
@@ -273,6 +272,13 @@ class LeafletPHP {
 					break;
 			}
 		}
+	}
+
+	/**
+	 * Get the map ID.
+	 */
+	public function get_id() {
+		return $this->jsid;
 	}
 
 	/**
