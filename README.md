@@ -26,8 +26,41 @@ $map = new LeafletPHP(array(
 ),'wpgmmap');
 ```
 
+Variables and Function in Javascript and Args
+---------------------------------------------
 
+Because json_encode doesn't allow variables as values, you'll need to wrap any variables with `@@@` and leaflet-php 
+will strip the quotes and @@@. 
 
+```
+$geojsonFeature = array(
+		array(
+		"type" => "Feature",
+		"properties" => array(
+			"name" =>"Coors Field",
+			"amenity" => "Baseball Stadium",
+			"popupContent" => "This is where the Rockies play!"
+			),
+		"geometry" => array(
+			"type" =>"Point",
+			"coordinates" => array(-104.99404, 39.75621)
+			)
+		),
+		array(
+			'onEachFeature' => '@@@onEachFeature@@@'
+		)
+);
+
+$map->add_script('
+		function onEachFeature(feature, layer) {
+		// does this feature have a property named popupContent?
+		if (feature.properties && feature.properties.popupContent) {
+			layer.bindPopup(feature.properties.popupContent);
+		}
+	}
+');
+$map->add_layer('L.geoJSON',$geojsonFeature,'destpoints');
+```
 
 JavaScript
 ----------
