@@ -86,3 +86,4 @@ jQuery('#mymapid').on('leafletphp/loaded',function(e){
 	});
 });
 ```
+
