@@ -256,7 +256,7 @@ class LeafletPHP {
 		}
 
 		// Set up reference to inside the container.
-		$html[] = 'window.leafletphp.maps.' . $this->jsid . ' = this;';
+		$html[] = 'window.' . $this->jsid . ' = window.leafletphp.maps.' . $this->jsid . ' = this;';
 
 		// Add user scripts here at the bottom.
 		foreach ( $this->scripts as $script ) {
