@@ -90,21 +90,6 @@ class LeafletPHP {
 	var $scripts = array();
 
 	/**
-	 * Script handles we've enqueued.
-	 *
-	 * @var $enqueued_scripts
-	 */
-	var $enqueued_scripts = array();
-
-	/**
-	 * Style handles we've enqueued.
-	 *
-	 * @var $style_handles
-	 */
-	var $enqueued_styles = array();
-
-
-	/**
 	 * The constructor.
 	 *
 	 * @param array  $args An array of Leaflet.js constructor arguments.
@@ -131,10 +116,8 @@ class LeafletPHP {
 	 * Get the output HTML, including the JS which will initialize the map.
 	 */
 	public function get_html() {
+		global $wp_scripts, $wp_styles;
 		$this->enqueue_scripts();
-
-		wp_print_scripts( $this->enqueued_scripts );
-		wp_print_styles( $this->enqueued_styles );
 
 		if ( ! empty( $this->jsid ) ) {
 			$this->jsid = $this->jsid;
@@ -147,12 +130,94 @@ class LeafletPHP {
 			$classtag = 'class="leafletphp ' . $this->classname . '" ';
 		}
 
+		/**
+		 * Verify that needed css/js is available.
+		 *
+		 * If a handle is still in the queue, then it wasn't printed yet. 
+		 */
+		$maybe_missing_css = array();
+		foreach( $wp_styles->queue as $handle ){
+			if ( strpos( $handle, 'leafletphp' ) === 0 ) {
+				$maybe_missing_css[] = $handle;
+			}
+		}
+
+		$missing_css = array();
+		if ( !empty( $maybe_missing_css ) ) {
+			$wp_styles->all_deps( $maybe_missing_css, true );
+			foreach ( $wp_styles->to_do as $handle ) {
+				$src = $wp_styles->registered[$handle]->src;
+
+				if ( empty( $src ) ) {
+					continue;
+				}
+
+				if ( ! preg_match( '|^(https?:)?//|', $src ) && ! ( $wp_styles->content_url && 0 === strpos( $src, $wp_styles->content_url ) ) ) {
+					$src = $wp_styles->base_url . $src;
+				}
+
+				$missing_css[] = add_query_arg( 'ver', $wp_styles->registered[$handle]->ver, $src);
+			}
+		}
+
+		$maybe_missing_js = array();
+		foreach( $wp_scripts->queue as $handle ){
+			if ( strpos( $handle, 'leafletphp' ) === 0 ) {
+				$maybe_missing_js[] = $handle;
+			}
+		}
+
+		$missing_js = array();
+		if ( !empty( $maybe_missing_js ) ) {
+			$wp_scripts->all_deps( $maybe_missing_js, true );
+			foreach( $wp_scripts->to_do as $handle ) {
+				$src = $wp_scripts->registered[$handle]->src;
+
+				if ( empty( $src ) ) {
+					continue;
+				}
+
+				if ( ! preg_match( '|^(https?:)?//|', $src ) && ! ( $wp_scripts->content_url && 0 === strpos( $src, $wp_scripts->content_url ) ) ) {
+					$src = $wp_scripts->base_url . $src;
+				}
+
+				$missing_js[] = add_query_arg( 'ver', $wp_scripts->registered[$handle]->ver, $src );
+			}
+		}
+
+		// wp_print_scripts( $this->enqueued_scripts );
+		// wp_print_styles( $this->enqueued_styles );
+
 		$html = array();
 
 		// Set up the div wrapper.
 		$html[] = '<div ' . $idtag . $classtag . 'data-leafletphp="' . $this->jsid . '">';
-		$html[] = '<script data-leafletphp="' . $this->jsid . '">' . "\n" . 'jQuery(document).ready(function() { new function(){';
+		$html[] = '<script data-leafletphp="' . $this->jsid . '">' . "\n";;
+		$html[] = 'window.leafletphp = window.leafletphp || {js_deferreds:[],maps:{}};';
+		$html[] = 'jQuery(document).ready(function(){';
 
+		// Load needed css and JS
+		if ( !empty( $missing_css ) ) {
+			$html[] = 'var maybe_missing_css = ' . json_encode( $missing_css ) . ";";
+			$html[] = 'jQuery(maybe_missing_css).each(function(i,css){';
+			$html[] = 'if ( jQuery(\'link[href="\'+css+\'"]\').length === 0 ) {';
+			$html[] = 'jQuery(\'head\').append(\'<link rel="stylesheet" href="\'+css+\'">\');';
+			$html[] = '}});';
+		}
+
+		if ( !empty( $missing_js ) ) {
+			$html[] = 'var maybe_missing_js = ' . json_encode( $missing_js ) . ";";
+			$html[] = 'jQuery(maybe_missing_js).each(function(i,js){';
+			$html[] = 'if ( jQuery(\'script[src="\'+js+\'"]\').length === 0 ) {';
+			$html[] = 'jQuery(\'head\').append(\'<link rel="stylesheet" href="\'+js+\'">\');';
+			$html[] = 'window.leafletphp.js_deferreds.push(jQuery.getScript(js));';
+			$html[]= 'console.log(js);';
+			$html[] = '}});';
+		}
+
+		$html[] = 'jQuery.when.apply(jQuery,window.leafletphp.js_deferreds).then( function() { new function(){';
+
+		// Set a script ID
 		$html[] = 'this.scriptid = "' . $this->jsid . '";';
 
 		// Initialize Leaflet.
@@ -191,7 +256,7 @@ class LeafletPHP {
 		}
 
 		// Set up reference to inside the container.
-		$html[] = 'window.' . $this->jsid . ' = this;';
+		$html[] = 'window.leafletphp.maps.' . $this->jsid . ' = this;';
 
 		// Add user scripts here at the bottom.
 		foreach ( $this->scripts as $script ) {
@@ -200,7 +265,7 @@ class LeafletPHP {
 
 		$html[] = 'jQuery("#' . $this->jsid . '").trigger("leafletphp/loaded",this);';
 
-		$html[] = '};});' . "\n" . '</script>';
+		$html[] = '};});});' . "\n" . '</script>';
 		$html[] = '</div>';
 
 		if ( $this->debug ) {
@@ -274,30 +339,23 @@ class LeafletPHP {
 
 		// Always enqueue these.
 		wp_enqueue_script( 'leafletphp-leaflet-js', $baseurl . '/assets/leaflet/leaflet.js', array( 'jquery' ), LeafletPHP::$version );
-		$this->enqueued_scripts[] = 'leafletphp-leaflet-js';
 
 		wp_enqueue_style( 'leafletphp-css', $baseurl . '/assets/leafletphp.css', array(), LeafletPHP::$version );
-		$this->enqueued_styles[] = 'leafletphp-css';
 
 		wp_enqueue_style( 'leafletphp-leaflet-css', $baseurl . '/assets/leaflet/leaflet.css', array( 'leafletphp-css' ), LeafletPHP::$version );
-		$this->enqueued_styles[] = 'leafletphp-leaflet-css';
 
 		// Enqueue needed control scripts.
 		foreach ( $this->controls as $control ) {
 			switch ( $control['type'] ) {
 				case 'L.Control.Draw':
-					wp_enqueue_script( 'leafletphp-draw-js', $baseurl . '/assets/Leaflet.draw/dist/leaflet.draw.js', array( 'leafletphp-leaflet-js' ), LeafletPHP::$version );
-					$this->enqueued_scripts[] = 'leafletphp-draw-js';
+					wp_enqueue_script( 'leafletphp-draw-js', $baseurl . '/assets/leaflet.draw/dist/leaflet.draw.js', array( 'leafletphp-leaflet-js' ), LeafletPHP::$version );
 
 					wp_enqueue_style( 'leafletphp-draw-css', $baseurl . '/assets/Leaflet.draw/dist/leaflet.draw.css', array( 'leafletphp-leaflet-css' ), LeafletPHP::$version );
-					$this->enqueued_styles[] = 'leafletphp-draw-css';
 					break;
 				case 'L.Control.Locate':
 					wp_enqueue_script( 'leafletphp-locate-js', $baseurl . '/assets/leaflet-locatecontrol/dist/L.Control.Locate.min.js', array( 'leafletphp-leaflet-js' ), LeafletPHP::$version );
-					$this->enqueued_scripts[] = 'leafletphp-locate-js';
 
 					wp_enqueue_style( 'leafletphp-locate-css', $baseurl . '/assets/Leaflet-locatecontrol/dist/L.Control.Locate.min.css', array( 'leafletphp-leaflet-css' ), LeafletPHP::$version );
-					$this->enqueued_styles[] = 'leafletphp-locate-css';
 					break;
 			}
 		}
