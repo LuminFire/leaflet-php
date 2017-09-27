@@ -5,7 +5,7 @@
  * @package LeafletPHP
  */
 
-$version = '0.0.1';
+$version = '0.0.2';
 
 if ( !class_exists( 'leafletphp_loader' ) ) {
 

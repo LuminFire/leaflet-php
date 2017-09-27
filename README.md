@@ -3,7 +3,8 @@ Leaflet PHP
 
 Leaflet PHP lets you build a Leaflet.js map in PHP and then generates the HTML and JavaScript to initialize it based on the settings you provided.
 
-This is provided AS IS with no guarantees. 
+The JavaScript is encapsulated so that you can have multiple maps on the same page without worrying about conflicting variables.
+
 
 Usage
 --------------
@@ -86,4 +87,3 @@ jQuery('#mymapid').on('leafletphp/loaded',function(e){
 	});
 });
 ```
-
