@@ -32,13 +32,6 @@ class LeafletPHP {
 	var $jsid;
 
 	/**
-	 * Are we in debug mode.
-	 *
-	 * @var $debug
-	 */
-	var $debug = false;
-
-	/**
 	 * Default settings for our known plugins.
 	 *
 	 * @var $settings
@@ -125,9 +118,9 @@ class LeafletPHP {
 
 		$idtag = 'id="' . $this->jsid . '" ';
 
-		$classtag = 'class="leafletphp" ';
+		$classnames = array('leafletphp');
 		if ( ! empty( $this->classname ) ) {
-			$classtag = 'class="leafletphp ' . $this->classname . '" ';
+			$classnames[] = $this->classname;
 		}
 
 		/**
@@ -185,90 +178,89 @@ class LeafletPHP {
 			}
 		}
 
-		// wp_print_scripts( $this->enqueued_scripts );
-		// wp_print_styles( $this->enqueued_styles );
-
 		$html = array();
 
 		// Set up the div wrapper.
-		$html[] = '<div ' . $idtag . $classtag . 'data-leafletphp="' . $this->jsid . '">';
-		$html[] = '<script data-leafletphp="' . $this->jsid . '">' . "\n";;
-		$html[] = 'window.leafletphp = window.leafletphp || {js_deferreds:[],maps:{}};';
-		$html[] = 'jQuery(document).ready(function(){';
+		$html[] = '<div class="leafletphpwrap">';
+	$html[] = '<div ' . $idtag . ' class="' . implode( ' ', $classnames ) . '" data-leafletphp="' . $this->jsid . '">';
+	$html[] = '<script data-leafletphp="' . $this->jsid . '">' . "\n";;
+	$html[] = 'window.leafletphp = window.leafletphp || {js_deferreds:[],maps:{}};';
+	$html[] = 'jQuery(document).ready(function(){';
 
-		// Load needed css and JS
-		if ( !empty( $missing_css ) ) {
-			$html[] = 'var maybe_missing_css = ' . json_encode( $missing_css ) . ";";
-			$html[] = 'jQuery(maybe_missing_css).each(function(i,css){';
-			$html[] = 'if ( jQuery(\'link[href="\'+css+\'"]\').length === 0 ) {';
-			$html[] = 'jQuery(\'head\').append(\'<link rel="stylesheet" href="\'+css+\'">\');';
-			$html[] = '}});';
+	// Load needed css and JS
+	if ( !empty( $missing_css ) ) {
+		$html[] = 'var maybe_missing_css = ' . json_encode( $missing_css ) . ";";
+		$html[] = 'jQuery(maybe_missing_css).each(function(i,css){';
+		$html[] = 'if ( jQuery(\'link[href="\'+css+\'"]\').length === 0 ) {';
+		$html[] = 'jQuery(\'head\').append(\'<link rel="stylesheet" href="\'+css+\'">\');';
+		$html[] = '}});';
+	}
+
+	if ( !empty( $missing_js ) ) {
+		$html[] = 'var maybe_missing_js = ' . json_encode( $missing_js ) . ";";
+		$html[] = 'jQuery(maybe_missing_js).each(function(i,js){';
+		$html[] = 'if ( jQuery(\'script[src="\'+js+\'"]\').length === 0 ) {';
+		$html[] = 'jQuery(\'head\').append(\'<link rel="stylesheet" href="\'+js+\'">\');';
+		$html[] = 'window.leafletphp.js_deferreds.push(jQuery.getScript(js));';
+		$html[]= 'console.log(js);';
+		$html[] = '}});';
+	}
+
+	$html[] = 'jQuery.when.apply(jQuery,window.leafletphp.js_deferreds).then( function() { new function(){';
+
+	// Set a script ID
+	$html[] = 'this.scriptid = "' . $this->jsid . '";';
+
+	// Initialize Leaflet.
+	$html[] = 'var map = this.map = L.map("' . $this->jsid . '", ' . $this->json_encode( $this->settings['leaflet'] ) . ');';
+
+	// Initialize basemap(s).
+	$html[] = 'this.basemaps = {};';
+	foreach ( $this->basemaps as $basemap ) {
+
+		if ( empty( $basemap['name'] ) ) {
+			$basemap['name'] = 'basemap_' . rand();
 		}
 
-		if ( !empty( $missing_js ) ) {
-			$html[] = 'var maybe_missing_js = ' . json_encode( $missing_js ) . ";";
-			$html[] = 'jQuery(maybe_missing_js).each(function(i,js){';
-			$html[] = 'if ( jQuery(\'script[src="\'+js+\'"]\').length === 0 ) {';
-			$html[] = 'jQuery(\'head\').append(\'<link rel="stylesheet" href="\'+js+\'">\');';
-			$html[] = 'window.leafletphp.js_deferreds.push(jQuery.getScript(js));';
-			$html[]= 'console.log(js);';
-			$html[] = '}});';
+		$html[] = 'var ' . $basemap['name'] . ' = this.basemaps.' . $basemap['name'] . ' = ' . $basemap['type'] . '.apply(this,' . $this->json_encode( $basemap['args'] ) . ').addTo(this.map);';
+	}
+
+	// Initialize layers.
+	$html[] = 'this.layers = {};';
+	foreach ( $this->layers as $layer ) {
+		if ( empty( $layer['name'] ) ) {
+			$layer['name'] = 'layer_' . rand();
 		}
 
-		$html[] = 'jQuery.when.apply(jQuery,window.leafletphp.js_deferreds).then( function() { new function(){';
+		$html[] = 'var ' . $layer['name'] . ' = this.layers.' . $layer['name']  . '= ' . $layer['type'] . '.apply(this,' . $this->json_encode( $layer['args'] ) . ').addTo(this.map);';
+	}
 
-		// Set a script ID
-		$html[] = 'this.scriptid = "' . $this->jsid . '";';
-
-		// Initialize Leaflet.
-		$html[] = 'var map = this.map = L.map("' . $this->jsid . '", ' . $this->json_encode( $this->settings['leaflet'] ) . ');';
-
-		// Initialize basemap(s).
-		$html[] = 'this.basemaps = {};';
-		foreach ( $this->basemaps as $basemap ) {
-
-			if ( empty( $basemap['name'] ) ) {
-				$basemap['name'] = 'basemap_' . rand();
-			}
-
-			$html[] = 'var ' . $basemap['name'] . ' = this.basemaps.' . $basemap['name'] . ' = ' . $basemap['type'] . '.apply(this,' . $this->json_encode( $basemap['args'] ) . ').addTo(this.map);';
+	// Initialize controls.
+	$html[] = 'this.controls = {};';
+	foreach ( $this->controls as $control ) {
+		if ( empty( $control['name'] ) ) {
+			$control['name'] = 'control_' . rand();
 		}
 
-		// Initialize layers.
-		$html[] = 'this.layers = {};';
-		foreach ( $this->layers as $layer ) {
-			if ( empty( $layer['name'] ) ) {
-				$layer['name'] = 'layer_' . rand();
-			}
+		$html[] = 'var ' . $control['name'] . ' = this.controls.' . $control['name'] . ' = new ' . $control['type'] . '(' . $this->json_encode( $control['args'] ) . ');';
+		$html[] = 'this.map.addControl(' . $control['name'] . ');';
+	}
 
-			$html[] = 'var ' . $layer['name'] . ' = this.layers.' . $layer['name']  . '= ' . $layer['type'] . '.apply(this,' . $this->json_encode( $layer['args'] ) . ').addTo(this.map);';
-		}
+	// Set up reference to inside the container.
+	$html[] = 'window.' . $this->jsid . ' = window.leafletphp.maps.' . $this->jsid . ' = this;';
 
-		// Initialize controls.
-		$html[] = 'this.controls = {};';
-		foreach ( $this->controls as $control ) {
-			if ( empty( $control['name'] ) ) {
-				$control['name'] = 'control_' . rand();
-			}
+	// Add user scripts here at the bottom.
+	foreach ( $this->scripts as $script ) {
+		$html[] = $script;
+	}
 
-			$html[] = 'var ' . $control['name'] . ' = this.controls.' . $control['name'] . ' = new ' . $control['type'] . '(' . $this->json_encode( $control['args'] ) . ');';
-			$html[] = 'this.map.addControl(' . $control['name'] . ');';
-		}
+	$html[] = 'jQuery("#' . $this->jsid . '").trigger("leafletphp/loaded",this);';
 
-		// Set up reference to inside the container.
-		$html[] = 'window.' . $this->jsid . ' = window.leafletphp.maps.' . $this->jsid . ' = this;';
+	$html[] = '};});});' . "\n" . '</script>';
+	$html[] = '</div></div>';
+	$html[] = '<div class="leafletphpspacer" data-leafletphp="' . $this->jsid . '"></div>';
 
-		// Add user scripts here at the bottom.
-		foreach ( $this->scripts as $script ) {
-			$html[] = $script;
-		}
-
-		$html[] = 'jQuery("#' . $this->jsid . '").trigger("leafletphp/loaded",this);';
-
-		$html[] = '};});});' . "\n" . '</script>';
-		$html[] = '</div>';
-
-		if ( $this->debug ) {
+		if ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) {
 			$output = implode( "\n",$html );
 		} else {
 			$output = implode( '',$html );
@@ -338,7 +330,11 @@ class LeafletPHP {
 		$baseurl = plugins_url( dirname( plugin_basename( __FILE__ ) ) );
 
 		// Always enqueue these.
-		wp_enqueue_script( 'leafletphp-leaflet-js', $baseurl . '/assets/leaflet/leaflet.js', array( 'jquery' ), LeafletPHP::$version );
+		if ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) {
+			wp_enqueue_script( 'leafletphp-leaflet-js', $baseurl . '/assets/leaflet/leaflet-src.js', array( 'jquery' ), LeafletPHP::$version );
+		} else {
+			wp_enqueue_script( 'leafletphp-leaflet-js', $baseurl . '/assets/leaflet/leaflet.js', array( 'jquery' ), LeafletPHP::$version );
+		}
 
 		wp_enqueue_style( 'leafletphp-css', $baseurl . '/assets/leafletphp.css', array(), LeafletPHP::$version );
 
@@ -348,12 +344,20 @@ class LeafletPHP {
 		foreach ( $this->controls as $control ) {
 			switch ( $control['type'] ) {
 				case 'L.Control.Draw':
-					wp_enqueue_script( 'leafletphp-draw-js', $baseurl . '/assets/leaflet.draw/dist/leaflet.draw.js', array( 'leafletphp-leaflet-js' ), LeafletPHP::$version );
+					if ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) {
+						wp_enqueue_script( 'leafletphp-draw-js', $baseurl . '/assets/leaflet.draw/dist/leaflet.draw-src.js', array( 'leafletphp-leaflet-js' ), LeafletPHP::$version );
+					} else {
+						wp_enqueue_script( 'leafletphp-draw-js', $baseurl . '/assets/leaflet.draw/dist/leaflet.draw.js', array( 'leafletphp-leaflet-js' ), LeafletPHP::$version );
+					}
 
 					wp_enqueue_style( 'leafletphp-draw-css', $baseurl . '/assets/Leaflet.draw/dist/leaflet.draw.css', array( 'leafletphp-leaflet-css' ), LeafletPHP::$version );
 					break;
 				case 'L.Control.Locate':
-					wp_enqueue_script( 'leafletphp-locate-js', $baseurl . '/assets/leaflet-locatecontrol/dist/L.Control.Locate.min.js', array( 'leafletphp-leaflet-js' ), LeafletPHP::$version );
+					if ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) {
+						wp_enqueue_script( 'leafletphp-locate-js', $baseurl . '/assets/leaflet-locatecontrol/dist/L.Control.Locate.js', array( 'leafletphp-leaflet-js' ), LeafletPHP::$version );
+					} else {
+						wp_enqueue_script( 'leafletphp-locate-js', $baseurl . '/assets/leaflet-locatecontrol/dist/L.Control.Locate.min.js', array( 'leafletphp-leaflet-js' ), LeafletPHP::$version );
+					}
 
 					wp_enqueue_style( 'leafletphp-locate-css', $baseurl . '/assets/Leaflet-locatecontrol/dist/L.Control.Locate.min.css', array( 'leafletphp-leaflet-css' ), LeafletPHP::$version );
 					break;
