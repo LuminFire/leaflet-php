@@ -90,6 +90,11 @@ class LeafletPHP {
 	 * @param string $classname Additional classnames to put in the wrapper div.
 	 */
 	public function __construct( $args = array(), $jsid = '', $classname = '' ) {
+
+		if ( !defined( 'JSON_PRETTY_PRINT') ) {
+			define( 'JSON_PRETTY_PRINT', 128 );
+		}
+
 		$this->add_settings( 'leaflet', $args );
 		$this->jsid = ( !empty( $jsid ) ? $jsid : 'leafletphp_' . rand() );
 		$this->classname = $classname;
@@ -183,7 +188,7 @@ class LeafletPHP {
 		// Set up the div wrapper.
 		$html[] = '<div class="leafletphpwrap">';
 		$html[] = '<div ' . $idtag . ' class="' . implode( ' ', $classnames ) . '" data-leafletphp="' . $this->jsid . '">';
-		$html[] = '<script data-leafletphp="' . $this->jsid . '">' . "\n";;
+		$html[] = '<script data-leafletphp="' . $this->jsid . '">';
 		$html[] = 'window.leafletphp = window.leafletphp || {js_deferreds:[],maps:{}};';
 		$html[] = 'jQuery(document).ready(function(){';
 
@@ -221,6 +226,16 @@ class LeafletPHP {
 		}
 
 		$html[] = 'jQuery.when.apply(jQuery,window.leafletphp.js_deferreds).then( function() { new function(){';
+
+		// Short icons for draw toolbar.
+		$html[] = "L.drawLocal.draw.toolbar.actions.text = 'X';"; // Cancel
+		$html[] = "L.drawLocal.draw.toolbar.finish.text = '💾';";  // Save
+		$html[] = "L.drawLocal.draw.toolbar.undo.text = '↩';"; // Undo
+
+		$html[] = "L.drawLocal.edit.toolbar.actions.save.text = '💾';";  // Save
+		$html[] = "L.drawLocal.edit.toolbar.actions.cancel.text = 'X';"; // Cancel
+		$html[] = "L.drawLocal.edit.toolbar.actions.clearAll.text = '💥';"; // Cancel
+
 
 		// Set a script ID
 		$html[] = 'this.scriptid = "' . $this->jsid . '";';
@@ -275,7 +290,7 @@ class LeafletPHP {
 		$html[] = '<div class="leafletphpspacer" data-leafletphp="' . $this->jsid . '"></div>';
 
 		if ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) {
-			$output = implode( "\n",$html );
+			$output = "\n" . implode( "\n",$html ) . "\n";
 		} else {
 			$output = implode( '',$html );
 		}
@@ -394,8 +409,9 @@ class LeafletPHP {
 	 * @param array $array Something to json_encode.
 	 */
 	public function json_encode( $array ) {
-		$ret = wp_json_encode( $array );
-		$ret = preg_replace( '/:"@@@(.*?)@@@"([,}])/',':\1\2',$ret );
+		$pretty_print = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? JSON_PRETTY_PRINT : 0 );
+		$ret = wp_json_encode( $array, $pretty_print );
+		$ret = preg_replace( '/:\s*"@@@(.*?)@@@"([,}])?/s',':\1\2',$ret );
 		return $ret;
 	}
 
