@@ -848,7 +848,11 @@ L.Draw.Polyline = L.Draw.Feature.extend({
 		var markerCount = this._markers.length;
 		// The last marker should have a click handler to close the polyline
 		if (markerCount > 1) {
-			this._markers[markerCount - 1].on('click', this._finishShape, this);
+			setTimeout(
+			function(){
+				this._markers[this._markers.length - 1].on('click', this._finishShape, this);
+			}.bind(this),
+			100);
 		}
 
 		// Remove the old marker click handler (as only the last point should close the polyline)
@@ -1094,7 +1098,8 @@ L.Draw.GPSLine = L.Draw.Feature.extend({
 		// Our unique options.
 		minDistance: 5, // Min distance in meters for each point.
 		minAccuracy: 10, // Mininmum accuracy to accept a point.
-		markerIcon: new L.Icon.Default(),
+		markerIcon: new L.Icon.Default(), 
+		smoothingFactor: 0, // Used in L.LineUtil.simplify
 
 		// All the Location Options from: http://leafletjs.com/reference-1.2.0.html#locate-options
 		watch: true,
@@ -1132,10 +1137,14 @@ L.Draw.GPSLine = L.Draw.Feature.extend({
 			this.options.icon = this.options.touchIcon;
 		}
 
+		this.options = L.Util.extend( this.options, options );
+		this._pointsAdded = 0;
+		this._lastSmoothing = 0;
+
 		// Save the type so super can fire, need to do this as cannot do this.TYPE :(
 		this.type = L.Draw.GPSLine.TYPE;
 
-		L.Draw.Feature.prototype.initialize.call(this, map, options);
+		L.Draw.Feature.prototype.initialize.call(this, map, this.options);
 	},
 
 
@@ -1195,8 +1204,6 @@ L.Draw.GPSLine = L.Draw.Feature.extend({
 
 		this._map.stopLocate();
 
-		this._cleanUpShape();
-
 		// remove markers from map
 		this._map.removeLayer(this._markerGroup);
 		delete this._markerGroup;
@@ -1218,6 +1225,9 @@ L.Draw.GPSLine = L.Draw.Feature.extend({
 			}
 		}
 
+		latlng.x = latlng.lat;
+		latlng.y = latlng.lng;
+
 		this._markers.push(this._createMarker(latlng));
 
 		this._poly.addLatLng(latlng);
@@ -1226,22 +1236,30 @@ L.Draw.GPSLine = L.Draw.Feature.extend({
 			this._map.addLayer(this._poly);
 		}
 
+		this._pointsAdded++;
+
+		if ( this.options.smoothingFactor > 0 && this._pointsAdded % 5 === 0 ) {
+			// this._smoothLine();
+		}
+
 		this._map.fire(L.Draw.Event.DRAWVERTEX, { layers: this._markerGroup });
 	},
 
 	// @method completeShape(): void
 	// Closes the polyline between the first and last points
 	completeShape: function () {
+		this._pointsAdded = 0;
+
 		if (this._markers.length === 0 ) {
 			return;
 		}
 
+		if ( this.options.smoothingFactor > 0 ) {
+			// this._smoothLine();
+		}
+
 		this._fireCreatedEvent();
 		this.disable();
-
-		if (this.options.repeatMode) {
-			this.enable();
-		}
 	},
 
 	_locationfound: function(e){
@@ -1264,6 +1282,31 @@ L.Draw.GPSLine = L.Draw.Feature.extend({
 		};
 		this._tooltip.updateContent( labelText );
 		this._tooltip.showAsError();
+	},
+
+	_smoothLine: function() {
+		var smoothed = L.LineUtil.simplify( this._poly._latlngs,this.options.smoothingFactor );
+		this._poly.setLatLngs( smoothed );
+
+		var poly_i;
+		var splice_count;
+		for(var i=this._lastSmoothing; i<smoothed.length;){
+			poly_i = this._poly._latlngs.indexOf( smoothed[i] );
+
+			if ( poly_i === i ) {
+				// Do nothing.
+			} else {
+				splice_count = (poly_i - i) + 1;
+				this._markers = this._markers.splice(i, splice_count);
+				this._markers = this._markers.splice(i, splice_count);
+			}
+		}
+
+		this._lastSmoothing = smoothed.length;
+
+		this._markerGroup.clearLayers();
+
+		this._poly.setLatLngs( this._markers );
 	},
 
 	/**
@@ -1319,12 +1362,6 @@ L.Draw.GPSLine = L.Draw.Feature.extend({
 
 
 	//*******  Verbatim from Draw.Polyline.js *******/
-
-	_cleanUpShape: function () {
-		if (this._markers.length > 1) {
-			this._markers[this._markers.length - 1].off('click', this._finishShape, this);
-		}
-	},
 
 	_fireCreatedEvent: function () {
 		var latlngs = this._poly.getLatLngs();
