@@ -1,23 +1,25 @@
 /**
  * Styles for the map itself.
  */
+.leafletphpspacer {
+	display: none;
+	width: 100%;
+	height: 380px;
+	max-height: 70vh;
+}
+
 .leafletphpwrap {
 	position: relative;
 	left: 0;
 	width: 100%;
-	height: 380px;
+	height: 380px; /* If this is changed, also change .leafletphpspacer and .leaflet-draw-tooltip */
+	max-height: 70vh;
 }
 
 .leafletphp {
 	position: relative;
 	width: 100%;
 	height: 100%;
-}
-
-.leafletphpspacer {
-	display: none;
-	width: 100%;
-	height: 380px;
 }
 
 @media screen and (max-width: 756px) {
@@ -82,5 +84,12 @@
 
 	.leaflet-control-zoom {
 		display: none;
+	}
+
+	.leaflet-draw-tooltip {
+		transform: none !important;
+		position: relative;
+		left: -20px;
+		top: 350px;
 	}
 }
