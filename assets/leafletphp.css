@@ -86,10 +86,12 @@
 		display: none;
 	}
 
+	/*
 	.leaflet-draw-tooltip {
 		transform: none !important;
 		position: relative;
 		left: -20px;
 		top: 350px;
 	}
+	*/
 }
