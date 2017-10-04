@@ -1314,16 +1314,9 @@ L.Draw.GPSLine = L.Draw.Feature.extend({
 	 * We're going to put them right below the labels that stick out the sides of the buttons.
 	 */
 	_touchZoomEnd: function(e){
-		var a_bounds = document.getElementsByClassName('leaflet-draw-draw-gpsline')[0].getBoundingClientRect();
-		var map_bounds = map._container.getBoundingClientRect();
-
-		a_bounds.x -= map_bounds.x - a_bounds.width;
-		a_bounds.y -= map_bounds.y - a_bounds.height;
-
-		a_bounds.y += 11;
-		a_bounds.x -= 19;
-		a_bounds = this._map.containerPointToLatLng( a_bounds );	
-		this._tooltip.updatePosition( a_bounds );
+		var newPos = this._map.mouseEventToLayerPoint(e.originalEvent);
+		var latlng = this._map.layerPointToLatLng(newPos);
+		this._tooltip.updatePosition( latlng );
 	},
 
 	/**

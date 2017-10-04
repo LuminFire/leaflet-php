@@ -372,6 +372,8 @@ class LeafletPHP {
 	public function enqueue_scripts() {
 		$baseurl = plugins_url( dirname( plugin_basename( __FILE__ ) ) );
 
+		$leafletphp_needs = array('leafletphp-leaflet-js');
+
 		// Always enqueue these.
 		if ( $this->debug ) {
 			wp_enqueue_script( 'leafletphp-leaflet-js', $baseurl . '/assets/leaflet/leaflet-src.js', array( 'jquery' ), LeafletPHP::$version );
@@ -387,6 +389,7 @@ class LeafletPHP {
 		foreach ( $this->controls as $control ) {
 			switch ( $control['type'] ) {
 				case 'L.Control.Draw':
+					$leafletphp_needs[] = 'leafletphp-draw-js';
 					if ( $this->debug ) {
 						wp_enqueue_script( 'leafletphp-draw-js', $baseurl . '/assets/Leaflet.draw/dist/leaflet.draw-src.js', array( 'leafletphp-leaflet-js' ), LeafletPHP::$version );
 					} else {
@@ -396,6 +399,7 @@ class LeafletPHP {
 					wp_enqueue_style( 'leafletphp-draw-css', $baseurl . '/assets/Leaflet.draw/dist/leaflet.draw.css', array( 'leafletphp-leaflet-css' ), LeafletPHP::$version );
 					break;
 				case 'L.Control.Locate':
+					$leafletphp_needs[] = 'leafletphp-locate-js';
 					if ( $this->debug ) {
 						wp_enqueue_script( 'leafletphp-locate-js', $baseurl . '/assets/leaflet-locatecontrol/dist/L.Control.Locate.js', array( 'leafletphp-leaflet-js' ), LeafletPHP::$version );
 					} else {
@@ -406,6 +410,9 @@ class LeafletPHP {
 					break;
 			}
 		}
+
+		// Finally, enqueue leafletphp.js, so it's last.
+		wp_enqueue_script( 'leafletphp-leafletphp-js', $baseurl . '/assets/leafletphp.js', $leafletphp_needs, LeafletPHP::$version );
 	}
 
 	/**
