@@ -219,8 +219,8 @@ class LeafletPHP {
 
 			$html[] = 'var load_missing_js = function(js){';
 			$html[] = $this->tab . 'if ( jQuery(\'script[src="\'+js+\'"]\').length === 0 ) {';
-			$html[] = $this->tab . $this->tab . 'jQuery(\'head\').append(\'<link rel="stylesheet" href="\'+js+\'">\');';
-			$html[] = $this->tab . $this->tab . 'window.leafletphp.js_deferreds.push(jQuery.getScript(js));';
+			$html[] = $this->tab . $this->tab .'jQuery(\'head\').append(\'<script src="\'+js+\'">\');';
+			$html[] = $this->tab . $this->tab .'window.leafletphp.js_deferreds.push(jQuery.getScript(js));';
 			$html[] = '}};';
 
 			/**
