@@ -240,13 +240,15 @@ class LeafletPHP {
 		$html[] = 'jQuery.when.apply(jQuery,window.leafletphp.js_deferreds).then( function() { ' . $this->newline_tab . 'new function(){';
 
 		// Short icons for draw toolbar.
-		$html[] = $this->tab . "L.drawLocal.draw.toolbar.actions.text = 'X';"; // Cancel
-		$html[] = $this->tab . "L.drawLocal.draw.toolbar.finish.text = '💾';";  // Save
-		$html[] = $this->tab . "L.drawLocal.draw.toolbar.undo.text = '↩';"; // Undo
+		$html[] = $this->tab . "if ( L.drawLocal !== undefined ) {";
+		$html[] = $this->tab . $this->tab . "L.drawLocal.draw.toolbar.actions.text = 'X';"; // Cancel
+		$html[] = $this->tab . $this->tab . "L.drawLocal.draw.toolbar.finish.text = '💾';";  // Save
+		$html[] = $this->tab . $this->tab . "L.drawLocal.draw.toolbar.undo.text = '↩';"; // Undo
 
-		$html[] = $this->tab . "L.drawLocal.edit.toolbar.actions.save.text = '💾';";  // Save
-		$html[] = $this->tab . "L.drawLocal.edit.toolbar.actions.cancel.text = 'X';"; // Cancel
-		$html[] = $this->tab . "L.drawLocal.edit.toolbar.actions.clearAll.text = '💥';"; // Cancel
+		$html[] = $this->tab . $this->tab . "L.drawLocal.edit.toolbar.actions.save.text = '💾';";  // Save
+		$html[] = $this->tab . $this->tab . "L.drawLocal.edit.toolbar.actions.cancel.text = 'X';"; // Cancel
+		$html[] = $this->tab . $this->tab . "L.drawLocal.edit.toolbar.actions.clearAll.text = '💥';"; // Cancel
+		$html[] = $this->tab . "}";
 
 
 		// Set a script ID
