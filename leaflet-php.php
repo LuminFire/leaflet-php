@@ -202,6 +202,7 @@ class LeafletPHP {
 		$html[] = '<div class="leafletphpwrap">';
 		$html[] = '<div ' . $idtag . ' class="' . implode( ' ', $classnames ) . '" data-leafletphp="' . $this->jsid . '">';
 		$html[] = '<script data-leafletphp="' . $this->jsid . '">';
+
 		$html[] = 'window.leafletphp = window.leafletphp || {' . $this->newline_tab . 'js_deferreds:[],' . $this->newline_tab . 'maps:{}' . $this->newline . '};';
 		$html[] = 'jQuery(document).ready(function(){';
 
@@ -238,6 +239,11 @@ class LeafletPHP {
 		}
 
 		$html[] = 'jQuery.when.apply(jQuery,window.leafletphp.js_deferreds).then( function() { ' . $this->newline_tab . 'new function(){';
+
+		// Verify that the map isn't already initialized. If it is, we've done this already so return.
+		$html[] = $this->tab . 'if ( ' . $this->jsid . ' !== undefined && ' . $this->jsid . '.map instanceof L.Map ) {';
+		$html[] = $this->tab . $this->tab . 'return;';
+		$html[] = $this->tab . '}';
 
 		// Short icons for draw toolbar.
 		$html[] = $this->tab . "if ( L.drawLocal !== undefined ) {";
