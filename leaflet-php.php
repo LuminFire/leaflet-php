@@ -415,7 +415,7 @@ class LeafletPHP {
 					}
 
 					$leafletphp_needs_css[] = 'leafletphp-locate-css';
-					wp_enqueue_style( 'leafletphp-locate-css', $baseurl . '/assets/Leaflet-locatecontrol/dist/L.Control.Locate.min.css', array( 'leafletphp-leaflet-css' ), LeafletPHP::$version );
+					wp_enqueue_style( 'leafletphp-locate-css', $baseurl . '/assets/leaflet-locatecontrol/dist/L.Control.Locate.min.css', array( 'leafletphp-leaflet-css' ), LeafletPHP::$version );
 					break;
 			}
 		}
